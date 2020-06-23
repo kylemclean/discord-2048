@@ -30,7 +30,7 @@ class Game {
     /**
      * 
      * @param {*} direction emoji representing direction of movement
-     * @returns undefined for invalid direction, -1 for game over, 0 for no move, 1 for successful move
+     * @returns undefined for invalid direction, -1 for no move, 0 for successful move but game over, 1 for successful move
      */
     move(direction) {
         let vec;
@@ -51,14 +51,8 @@ class Game {
                 return undefined;
         }
 
-        if (!this.canMove([0, -1])
-            && !this.canMove([0, 1])
-            && !this.canMove([-1, 0])
-            && !this.canMove([1, 0]))
-            return -1;
-
         if (!this.canMove(vec))
-            return 0;
+            return -1;
 
         const tilesCombinedTo = [];
 
@@ -105,6 +99,14 @@ class Game {
                 }
             }
         }
+
+        this.spawnRandomTile();
+
+        if (!this.canMove([0, -1])
+            && !this.canMove([0, 1])
+            && !this.canMove([-1, 0])
+            && !this.canMove([1, 0]))
+            return 0;
 
         return 1;
     }
@@ -181,7 +183,6 @@ class Game {
                 }
             }
         }
-
         return canvas;
     }
 
@@ -241,10 +242,31 @@ client.on('message', msg => {
         return;
 
     const game = new Game(msg.author, 4);
-    sendGame(game, msg.channel);
+    sendGame(game, msg.channel, addMoveReactions);
 });
 
-function sendGame(game, channel) {
+function addMoveReactions(game, gameMsg) {
+    gameMsg.react(moveLeftEmoji)
+        .then(() => {
+            if (gameMsg === game.msg) {
+                gameMsg.react(moveUpEmoji)
+                    .then(() => {
+                        if (gameMsg === game.msg) {
+                            gameMsg.react(moveDownEmoji)
+                                .then(() => {
+                                    if (gameMsg === game.msg) {
+                                        gameMsg.react(moveRightEmoji)
+                                            .then(() => { })
+                                            .catch(() => { });
+                                    }
+                                }).catch(() => { });
+                        }
+                    }).catch(() => { });
+            }
+        }).catch(() => { });
+}
+
+function sendGame(game, channel, cb) {
     const filename = `game${Date.now()}.png`;
     const attachment = new Discord.MessageAttachment(game.render().toBuffer(), filename);
     const embed = new Discord.MessageEmbed()
@@ -259,25 +281,10 @@ function sendGame(game, channel) {
             }
             ongoingGames[gameMsg.id] = game;
             game.msg = gameMsg;
-            gameMsg.react(moveUpEmoji)
-                .then(() => {
-                    if (gameMsg === game.msg) {
-                        gameMsg.react(moveLeftEmoji)
-                            .then(() => {
-                                if (gameMsg === game.msg) {
-                                    gameMsg.react(moveDownEmoji)
-                                        .then(() => {
-                                            if (gameMsg === game.msg) {
-                                                gameMsg.react(moveRightEmoji)
-                                                    .then(() => { })
-                                                    .catch(() => { });
-                                            }
-                                        }).catch(() => { });
-                                }
-                            }).catch(() => { });
-                    }
-                }).catch(() => { });
-        });
+            if (cb) {
+                cb(game, gameMsg);
+            }
+        }).catch(error => console.error(error));
 }
 
 client.on('messageReactionAdd', (reaction, user) => {
@@ -289,12 +296,14 @@ client.on('messageReactionAdd', (reaction, user) => {
         return;
 
     const moveResult = game.move(reaction.emoji.name);
-    if (moveResult === -1) {
-        reaction.message.reply('Game over!');
+    if (moveResult === 0) {
+        sendGame(game, reaction.message.channel, (game, gameMsg) => {
+            gameMsg.channel.send('Game over!')
+                .catch(error => console.error(error))
+        });
         delete ongoingGames[reaction.message.id];
     } else if (moveResult === 1) {
-        game.spawnRandomTile();
-        sendGame(game, reaction.message.channel);
+        sendGame(game, reaction.message.channel, addMoveReactions);
     }
 });
 
