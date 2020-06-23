@@ -167,7 +167,7 @@ class Game {
         ctx.fillStyle = '#bbada0';
         ctx.fillRect(0, 0, canvasSize, canvasSize);
 
-        const tilePadding = 4;
+        const tilePadding = canvasSize / 100;
         const tileSize = canvasSize / this.size;
         for (let y = 0; y < this.size; y++) {
             for (let x = 0; x < this.size; x++) {
@@ -178,7 +178,7 @@ class Game {
                     ctx.fillStyle = this.getTileTextColor(tileValue);
                     ctx.textAlign = 'center';
                     ctx.textBaseline = 'middle';
-                    ctx.font = this.getTileTextFontSize(tileValue) + ' sans-serif';
+                    ctx.font = this.getTileTextFontSize(tileValue, tileSize) + ' sans-serif';
                     ctx.fillText(tileValue, x * tileSize + tileSize / 2, y * tileSize + tileSize / 2);
                 }
             }
@@ -188,7 +188,7 @@ class Game {
 
     getTileBackgroundColor(value) {
         switch (value) {
-            default:
+            case 0:
                 return '#ccc0b3';
             case 2:
                 return '#eee4da';
@@ -211,6 +211,7 @@ class Game {
             case 1024:
                 return '#ecc44c';
             case 2048:
+            default:
                 return '#ecc140';
         }
     }
@@ -225,11 +226,12 @@ class Game {
         }
     }
 
-    getTileTextFontSize(value) {
-        if (value > 0) {
-            return (72 - (Math.floor(Math.log10(value)) + 1) * 12) + 'px';
+    getTileTextFontSize(tileValue, tileSize) {
+        let fontSize = 0.72 * tileSize;
+        if (tileValue > 0) {
+            fontSize -= (Math.floor(Math.log10(tileValue)) + 1) * 10;
         }
-        return '72px';
+        return fontSize + 'px';
     }
 }
 
