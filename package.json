@@ -1,14 +1,19 @@
 {
   "name": "discord-2048",
-  "version": "1.0.0",
+  "version": "2.0.0",
   "description": "Play 2048 using this Discord bot.",
   "main": "server.js",
   "scripts": {
-    "start": "node server.js",
-    "debug": "node --inspect server.js"
+    "start": "npm run build && node build/server.js",
+    "build": "esbuild --bundle --minify --platform=node --external:./node_modules/* --outfile=./build/server.js ./src/server.js",
+    "dev": "ts-node-dev ./src/server.ts"
   },
   "dependencies": {
     "canvas": "^2.9.0",
     "discord.js": "^13.6.0"
+  },
+  "devDependencies": {
+    "esbuild": "^0.14.14",
+    "ts-node-dev": "^1.1.8"
   }
 }

@@ -116,3 +116,4 @@ dist
 .pnp.*
 
 2048.png
+build/
